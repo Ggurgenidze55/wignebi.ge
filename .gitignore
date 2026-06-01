@@ -9,3 +9,5 @@ apps/api/dist/
 *.pem
 next-env.d.ts
 .vercel
+.railway
+.deploy-secrets.local
