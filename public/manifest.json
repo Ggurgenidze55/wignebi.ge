@@ -1,0 +1,10 @@
+{
+  "name": "Tsignebi",
+  "short_name": "Tsignebi",
+  "description": "წიგნები და აუდიოწიგნები ქართულად",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#F8FAFC",
+  "lang": "ka"
+}

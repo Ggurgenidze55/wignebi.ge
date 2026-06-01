@@ -1,0 +1,10 @@
+import { getReadingParagraphs } from '@/lib/cms/catalog';
+import { NextResponse } from 'next/server';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: { slug: string; chapterId: string } },
+) {
+  const paragraphs = await getReadingParagraphs(params.slug, params.chapterId, '');
+  return NextResponse.json({ paragraphs });
+}
