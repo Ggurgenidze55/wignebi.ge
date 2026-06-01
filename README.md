@@ -43,7 +43,32 @@ app/admin/             # Admin dashboard CRUD
 - `NEXT_PUBLIC_CMS_API_URL` — admin UI
 - `USE_STATIC_DATA=true` — მხოლოდ `data/*.ts` (API გარეშე)
 
-## Railway
+## Deploy (Production)
+
+### GitHub
+Repo: https://github.com/Ggurgenidze55/wignebi.ge
+
+### Railway — API + PostgreSQL
+```bash
+npx @railway/cli login
+npx @railway/cli init
+npx @railway/cli add --plugin postgresql
+# Set env vars (see scripts/deploy-guide.sh)
+npx @railway/cli up
+npx @railway/cli run npm run db:seed -w @tsignebi/database  # once
+```
+
+### Vercel — Next.js (frontend only)
+```bash
+npx vercel login
+npx vercel --prod --yes
+```
+
+**Vercel env:** `CMS_API_URL`, `BFF_SECRET`, `JWT_SECRET`, `JWT_REFRESH_SECRET`
+
+Run `./scripts/deploy-guide.sh` for full checklist.
+
+## Railway (legacy notes)
 
 1. New **PostgreSQL** → copy `DATABASE_URL`
 2. New **Service** from repo, root `railway.toml` (API)
