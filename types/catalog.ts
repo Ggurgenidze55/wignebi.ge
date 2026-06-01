@@ -5,6 +5,8 @@ export type Author = {
   bio: string;
   imageUrl?: string;
   relatedSlugs: string[];
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 export type Genre = {
@@ -14,4 +16,6 @@ export type Genre = {
   nameEn: string;
   description: string;
   relatedSlugs: string[];
+  seoTitle?: string;
+  seoDescription?: string;
 };

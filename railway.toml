@@ -4,5 +4,8 @@ builder = "NIXPACKS"
 buildCommand = "npm install && npm run db:generate -w @tsignebi/database && npm run build -w @tsignebi/api"
 
 [deploy]
-startCommand = "npm run db:push -w @tsignebi/database && npm run db:seed -w @tsignebi/database && npm run start:prod -w @tsignebi/api"
+startCommand = "npm run db:push -w @tsignebi/database && npm run start:prod -w @tsignebi/api"
 restartPolicyType = "ON_FAILURE"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+

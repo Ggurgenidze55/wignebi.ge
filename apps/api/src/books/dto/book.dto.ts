@@ -6,13 +6,16 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsSafeUrl, IsSlug } from '../../common/validators';
 
 export class ChapterDto {
   @IsString()
+  @MaxLength(200)
   title!: string;
 
   @IsInt()
@@ -20,7 +23,7 @@ export class ChapterDto {
   durationSec!: number;
 
   @IsOptional()
-  @IsString()
+  @IsSafeUrl()
   audioUrl?: string;
 
   @IsOptional()
@@ -30,23 +33,42 @@ export class ChapterDto {
 }
 
 export class CreateBookDto {
-  @IsString()
+  @IsSlug()
   slug!: string;
 
   @IsString()
+  @MaxLength(300)
   title!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(300)
   titleEn?: string;
 
   @IsString()
+  @MaxLength(5000)
   description!: string;
 
+  @IsOptional()
   @IsString()
-  narrator!: string;
+  @MaxLength(200)
+  seoTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  seoDescription?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  seoKeywords?: string[];
 
   @IsString()
+  @MaxLength(200)
+  narrator!: string;
+
+  @IsSlug()
   authorSlug!: string;
 
   @IsOptional()
@@ -54,7 +76,7 @@ export class CreateBookDto {
   coverHue?: number;
 
   @IsOptional()
-  @IsString()
+  @IsSafeUrl()
   coverUrl?: string;
 
   @IsOptional()
@@ -105,27 +127,46 @@ export class CreateBookDto {
 
 export class UpdateBookDto {
   @IsOptional()
-  @IsString()
+  @IsSlug()
   slug?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(300)
   title?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(300)
   titleEn?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(5000)
   description?: string;
 
   @IsOptional()
   @IsString()
-  narrator?: string;
+  @MaxLength(200)
+  seoTitle?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
+  seoDescription?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  seoKeywords?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  narrator?: string;
+
+  @IsOptional()
+  @IsSlug()
   authorSlug?: string;
 
   @IsOptional()
@@ -133,7 +174,7 @@ export class UpdateBookDto {
   coverHue?: number;
 
   @IsOptional()
-  @IsString()
+  @IsSafeUrl()
   coverUrl?: string;
 
   @IsOptional()

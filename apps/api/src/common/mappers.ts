@@ -28,6 +28,9 @@ export function mapBook(row: {
   title: string;
   titleEn: string | null;
   description: string;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  seoKeywords?: string[];
   narrator: string;
   coverHue: number;
   coverUrl: string | null;
@@ -58,6 +61,9 @@ export function mapBook(row: {
     authorSlug: row.author.slug,
     narrator: row.narrator,
     description: row.description,
+    seoTitle: row.seoTitle ?? undefined,
+    seoDescription: row.seoDescription ?? undefined,
+    seoKeywords: row.seoKeywords ?? [],
     coverHue: row.coverHue,
     coverUrl: row.coverUrl ?? undefined,
     rating: row.rating ?? undefined,
@@ -84,6 +90,8 @@ export function mapAuthor(row: {
   name: string;
   bio: string;
   imageUrl: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   relatedSlugs: string[];
 }) {
   return {
@@ -92,6 +100,8 @@ export function mapAuthor(row: {
     name: row.name,
     bio: row.bio,
     imageUrl: row.imageUrl ?? undefined,
+    seoTitle: row.seoTitle ?? undefined,
+    seoDescription: row.seoDescription ?? undefined,
     relatedSlugs: row.relatedSlugs,
   };
 }
@@ -102,6 +112,8 @@ export function mapGenre(row: {
   name: string;
   nameEn: string;
   description: string;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   relatedSlugs: string[];
 }) {
   return {
@@ -110,6 +122,8 @@ export function mapGenre(row: {
     name: row.name,
     nameEn: row.nameEn,
     description: row.description,
+    seoTitle: row.seoTitle ?? undefined,
+    seoDescription: row.seoDescription ?? undefined,
     relatedSlugs: row.relatedSlugs,
   };
 }

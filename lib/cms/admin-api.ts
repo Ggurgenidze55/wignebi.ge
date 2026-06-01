@@ -1,47 +1,37 @@
-const API_BASE =
-  typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_CMS_API_URL ?? 'http://localhost:4000/api')
-    : (process.env.CMS_API_URL ?? 'http://localhost:4000/api');
-
-const TOKEN_KEY = 'tsignebi_admin_token';
-
-export function getAdminToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem(TOKEN_KEY);
-}
-
-export function setAdminToken(token: string) {
-  sessionStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearAdminToken() {
-  sessionStorage.removeItem(TOKEN_KEY);
-}
+/** Admin API client — uses HttpOnly cookie BFF routes; no JWT in JavaScript. */
 
 export async function adminLogin(email: string, password: string) {
-  const res = await fetch(`${API_BASE}/admin/auth/login`, {
+  const res = await fetch('/api/admin/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw new Error('Login failed');
-  const data = (await res.json()) as { token: string };
-  setAdminToken(data.token);
-  return data;
+  return res.json();
+}
+
+export async function adminLogout() {
+  await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'include' });
+}
+
+export async function adminMe() {
+  const res = await fetch('/api/admin/auth/me', { credentials: 'include' });
+  if (!res.ok) return null;
+  return res.json();
 }
 
 export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAdminToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const clean = path.startsWith('/') ? path.slice(1) : path;
+  const res = await fetch(`/api/admin/proxy/${clean}`, {
     ...init,
+    credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...init?.headers,
     },
   });
   if (res.status === 401) {
-    clearAdminToken();
     if (typeof window !== 'undefined') window.location.href = '/admin/login';
     throw new Error('Unauthorized');
   }
@@ -51,4 +41,23 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+export async function adminUpload(file: File, onProgress?: (pct: number) => void) {
+  const form = new FormData();
+  form.append('file', file);
+  return new Promise<unknown>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/admin/media/upload');
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
+      else reject(new Error(xhr.responseText || 'Upload failed'));
+    };
+    xhr.onerror = () => reject(new Error('Upload failed'));
+    xhr.send(form);
+  });
 }

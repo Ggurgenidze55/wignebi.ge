@@ -10,14 +10,14 @@ export default function AdminBooksPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    adminFetch<Book[]>('/admin/books')
+    adminFetch<Book[]>('books')
       .then(setBooks)
       .catch((e) => setError(String(e)));
   }, []);
 
   async function remove(id: string) {
     if (!confirm('წავშალოთ?')) return;
-    await adminFetch(`/admin/books/${id}`, { method: 'DELETE' });
+    await adminFetch(`books/${id}`, { method: 'DELETE' });
     setBooks((b) => b.filter((x) => x.id !== id));
   }
 

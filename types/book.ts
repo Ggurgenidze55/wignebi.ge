@@ -25,6 +25,9 @@ export type Book = {
   chapters: Chapter[];
   genreSlugs: string[];
   tags: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string[];
   publishedAt: string;
   popularity: number;
   isNew?: boolean;

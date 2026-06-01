@@ -10,12 +10,12 @@ export default function AdminGenresPage() {
   const [form, setForm] = useState({ slug: '', name: '', nameEn: '', description: '' });
 
   useEffect(() => {
-    adminFetch<Genre[]>('/admin/genres').then(setItems);
+    adminFetch<Genre[]>('genres').then(setItems);
   }, []);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    const created = await adminFetch<Genre>('/admin/genres', {
+    const created = await adminFetch<Genre>('genres', {
       method: 'POST',
       body: JSON.stringify(form),
     });
@@ -25,7 +25,7 @@ export default function AdminGenresPage() {
 
   async function remove(id: string) {
     if (!confirm('წავშალოთ?')) return;
-    await adminFetch(`/admin/genres/${id}`, { method: 'DELETE' });
+    await adminFetch(`genres/${id}`, { method: 'DELETE' });
     setItems((list) => list.filter((x) => x.id !== id));
   }
 

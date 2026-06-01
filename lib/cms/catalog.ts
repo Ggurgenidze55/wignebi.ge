@@ -49,6 +49,12 @@ export async function getAllBooks(filters?: BookFilters): Promise<Book[]> {
   return staticBooks;
 }
 
+export async function resolveBookSlug(slug: string): Promise<{ slug: string; redirect: boolean }> {
+  const remote = await cmsFetch<{ redirect: boolean; newSlug?: string }>(`/redirects/book/${slug}`);
+  if (remote?.redirect && remote.newSlug) return { slug: remote.newSlug, redirect: true };
+  return { slug, redirect: false };
+}
+
 export async function getBookBySlug(slug: string): Promise<Book | undefined> {
   const remote = await cmsFetch<Book>(`/books/${slug}`);
   if (remote) return remote;

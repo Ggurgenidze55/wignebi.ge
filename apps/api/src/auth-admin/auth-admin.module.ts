@@ -4,17 +4,15 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthAdminController } from './auth-admin.controller';
 import { AuthAdminService } from './auth-admin.service';
 import { JwtStrategy } from './jwt.strategy';
+import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'dev-tsignebi-jwt-change-me',
-      signOptions: { expiresIn: '7d' },
-    }),
+    JwtModule.register({}),
   ],
   controllers: [AuthAdminController],
-  providers: [AuthAdminService, JwtStrategy],
-  exports: [AuthAdminService, JwtModule],
+  providers: [AuthAdminService, JwtStrategy, RolesGuard],
+  exports: [AuthAdminService, RolesGuard],
 })
 export class AuthAdminModule {}

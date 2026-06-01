@@ -1,8 +1,15 @@
 import { BookPageClient } from '@/app/book/[slug]/BookPageClient';
-import { getAllBookSlugs, getAuthorBySlug, getBookBySlug, getGenreBySlug, getSimilarBooks } from '@/lib/cms/catalog';
+import {
+  getAllBookSlugs,
+  getAuthorBySlug,
+  getBookBySlug,
+  getGenreBySlug,
+  getSimilarBooks,
+  resolveBookSlug,
+} from '@/lib/cms/catalog';
 import { bookMetadata } from '@/lib/seo/metadata';
 import { JsonLd, bookSchema, breadcrumbSchema } from '@/lib/seo/json-ld';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 
 export async function generateStaticParams() {
   const slugs = await getAllBookSlugs();
@@ -16,7 +23,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function BookPage({ params }: { params: { slug: string } }) {
-  const book = await getBookBySlug(params.slug);
+  const resolved = await resolveBookSlug(params.slug);
+  if (resolved.redirect) permanentRedirect(`/book/${resolved.slug}`);
+
+  const book = await getBookBySlug(resolved.slug);
   if (!book) notFound();
 
   const [similar, author] = await Promise.all([

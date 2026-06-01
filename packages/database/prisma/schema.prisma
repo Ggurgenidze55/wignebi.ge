@@ -13,66 +13,148 @@ enum AccessTier {
   PREMIUM
 }
 
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum AuditAction {
+  BOOK_CREATED
+  BOOK_UPDATED
+  BOOK_DELETED
+  BOOK_RESTORED
+  BOOK_PERMANENT_DELETE
+  AUTHOR_CREATED
+  AUTHOR_UPDATED
+  AUTHOR_DELETED
+  AUTHOR_RESTORED
+  AUTHOR_PERMANENT_DELETE
+  GENRE_CREATED
+  GENRE_UPDATED
+  GENRE_DELETED
+  GENRE_RESTORED
+  GENRE_PERMANENT_DELETE
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  MEDIA_UPLOADED
+  MEDIA_DELETED
+}
+
+enum SlugEntityType {
+  BOOK
+  AUTHOR
+  GENRE
+}
+
+enum MediaType {
+  IMAGE
+  AUDIO
+  DOCUMENT
+}
+
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  name          String?
+  role          Role           @default(EDITOR)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  mediaFiles    MediaFile[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Author {
-  id           String   @id @default(cuid())
-  slug         String   @unique
-  name         String
-  bio          String   @db.Text
-  imageUrl     String?
-  relatedSlugs String[] @default([])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  name           String
+  bio            String    @db.Text
+  imageUrl       String?
+  seoTitle       String?
+  seoDescription String?   @db.Text
+  relatedSlugs   String[]  @default([])
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   books Book[]
+
+  @@index([deletedAt])
+  @@index([name])
 }
 
 model Genre {
-  id           String   @id @default(cuid())
-  slug         String   @unique
-  name         String
-  nameEn       String
-  description  String   @db.Text
-  relatedSlugs String[] @default([])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  name           String
+  nameEn         String
+  description    String    @db.Text
+  seoTitle       String?
+  seoDescription String?   @db.Text
+  relatedSlugs   String[]  @default([])
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   books BookGenre[]
+
+  @@index([deletedAt])
+  @@index([name])
 }
 
 model Book {
-  id          String     @id @default(cuid())
-  slug        String     @unique
-  title       String
-  titleEn     String?
-  description String     @db.Text
-  narrator    String
-  coverHue    Int        @default(200)
-  coverUrl    String?
-  rating      Float?
-  access      AccessTier @default(FREE)
-  priceGel    Int?
-  durationSec Int        @default(0)
-  tags        String[]   @default([])
-  publishedAt DateTime
-  popularity  Int        @default(0)
-  isNew       Boolean    @default(false)
-  published   Boolean    @default(true)
-  authorId    String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  slug           String     @unique
+  title          String
+  titleEn        String?
+  description    String     @db.Text
+  seoTitle       String?
+  seoDescription String?    @db.Text
+  seoKeywords    String[]   @default([])
+  narrator       String
+  coverHue       Int        @default(200)
+  coverUrl       String?
+  rating         Float?
+  access         AccessTier @default(FREE)
+  priceGel       Int?
+  durationSec    Int        @default(0)
+  tags           String[]   @default([])
+  publishedAt    DateTime
+  popularity     Int        @default(0)
+  isNew          Boolean    @default(false)
+  published      Boolean    @default(true)
+  deletedAt      DateTime?
+  authorId       String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   author   Author      @relation(fields: [authorId], references: [id])
   genres   BookGenre[]
   chapters Chapter[]
+
+  @@index([deletedAt])
+  @@index([published, deletedAt])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@index([popularity])
+  @@index([access])
+  @@index([isNew])
 }
 
 model BookGenre {
@@ -82,21 +164,75 @@ model BookGenre {
   genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
   @@id([bookId, genreId])
+  @@index([genreId])
 }
 
 model Chapter {
-  id             String   @id @default(cuid())
-  bookId         String
-  title          String
-  orderIndex     Int
-  durationSec    Int      @default(0)
-  audioUrl       String?
+  id                String   @id @default(cuid())
+  bookId            String
+  title             String
+  orderIndex        Int
+  durationSec       Int      @default(0)
+  audioUrl          String?
   readingParagraphs String[] @default([])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([bookId, orderIndex])
   @@index([bookId])
+}
+
+model SlugRedirect {
+  id         String         @id @default(cuid())
+  entityType SlugEntityType
+  oldSlug    String
+  newSlug    String
+  entityId   String
+  createdAt  DateTime       @default(now())
+
+  @@unique([entityType, oldSlug])
+  @@index([entityType, newSlug])
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  userEmail   String?
+  action      AuditAction
+  entityType  String?
+  entityId    String?
+  entityLabel String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime    @default(now())
+
+  user AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
+model MediaFile {
+  id           String    @id @default(cuid())
+  key          String    @unique
+  url          String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  mediaType    MediaType
+  checksum     String?
+  uploadedById String?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  uploadedBy AdminUser? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([checksum])
+  @@index([originalName])
+  @@index([deletedAt])
+  @@index([mediaType])
 }

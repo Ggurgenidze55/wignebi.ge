@@ -23,15 +23,15 @@ export function BookForm({ bookId }: { bookId?: string }) {
   const [access, setAccess] = useState<Book['access']>('free');
   const [genreSlugs, setGenreSlugs] = useState('');
   const [publishedAt, setPublishedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
   const [chapters, setChapters] = useState<ChapterInput[]>([
     { title: 'შესავალი', durationSec: 600, audioUrl: '' },
   ]);
 
   useEffect(() => {
-    Promise.all([
-      adminFetch<Author[]>('/admin/authors'),
-      adminFetch<Genre[]>('/admin/genres'),
-    ]).then(([a, g]) => {
+    Promise.all([adminFetch<Author[]>('authors'), adminFetch<Genre[]>('genres')]).then(([a, g]) => {
       setAuthors(a);
       setGenres(g);
       if (a[0]) setAuthorSlug(a[0].slug);
@@ -40,11 +40,14 @@ export function BookForm({ bookId }: { bookId?: string }) {
 
   useEffect(() => {
     if (!bookId) return;
-    adminFetch<Book>(`/admin/books/${bookId}`)
+    adminFetch<Book>(`books/${bookId}`)
       .then((b) => {
         setSlug(b.slug);
         setTitle(b.title);
         setDescription(b.description);
+        setSeoTitle((b as Book & { seoTitle?: string }).seoTitle ?? '');
+        setSeoDescription((b as Book & { seoDescription?: string }).seoDescription ?? '');
+        setSeoKeywords(((b as Book & { seoKeywords?: string[] }).seoKeywords ?? []).join(', '));
         setNarrator(b.narrator);
         setAuthorSlug(b.authorSlug);
         setAccess(b.access);
@@ -72,14 +75,17 @@ export function BookForm({ bookId }: { bookId?: string }) {
       authorSlug,
       access,
       genreSlugs: genreSlugs.split(',').map((s) => s.trim()).filter(Boolean),
+      seoTitle: seoTitle || undefined,
+      seoDescription: seoDescription || undefined,
+      seoKeywords: seoKeywords.split(',').map((s) => s.trim()).filter(Boolean),
       publishedAt,
       chapters,
     };
     try {
       if (bookId) {
-        await adminFetch(`/admin/books/${bookId}`, { method: 'PATCH', body: JSON.stringify(body) });
+        await adminFetch(`books/${bookId}`, { method: 'PATCH', body: JSON.stringify(body) });
       } else {
-        await adminFetch('/admin/books', { method: 'POST', body: JSON.stringify(body) });
+        await adminFetch('books', { method: 'POST', body: JSON.stringify(body) });
       }
       router.push('/admin/books');
     } catch (err) {
@@ -133,6 +139,21 @@ export function BookForm({ bookId }: { bookId?: string }) {
         გამოქვეყნება
         <input type="date" className="mt-1 w-full rounded border border-line px-3 py-2" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} />
       </label>
+      <fieldset className="space-y-3 rounded border border-line/80 p-4">
+        <legend className="px-1 text-sm font-medium">SEO</legend>
+        <label className="block text-sm">
+          seoTitle
+          <input className="mt-1 w-full rounded border border-line px-3 py-2" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+        </label>
+        <label className="block text-sm">
+          seoDescription
+          <textarea className="mt-1 w-full rounded border border-line px-3 py-2" rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
+        </label>
+        <label className="block text-sm">
+          seoKeywords (მძიმით)
+          <input className="mt-1 w-full rounded border border-line px-3 py-2" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} />
+        </label>
+      </fieldset>
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">თავები</legend>
         {chapters.map((ch, i) => (

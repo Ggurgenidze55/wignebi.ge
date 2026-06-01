@@ -1,4 +1,4 @@
-import { PrismaClient, AccessTier } from '@prisma/client';
+import { PrismaClient, AccessTier, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { authors } from '../../../data/authors';
 import { genres } from '../../../data/genres';
@@ -20,8 +20,8 @@ async function main() {
 
   await prisma.adminUser.upsert({
     where: { email: adminEmail },
-    update: { passwordHash: hash, name: 'Admin' },
-    create: { email: adminEmail, passwordHash: hash, name: 'Admin' },
+    update: { passwordHash: hash, name: 'Admin', role: Role.ADMIN },
+    create: { email: adminEmail, passwordHash: hash, name: 'Admin', role: Role.ADMIN },
   });
 
   for (const a of authors) {

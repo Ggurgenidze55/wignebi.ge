@@ -10,12 +10,12 @@ export default function AdminAuthorsPage() {
   const [form, setForm] = useState({ slug: '', name: '', bio: '' });
 
   useEffect(() => {
-    adminFetch<Author[]>('/admin/authors').then(setItems);
+    adminFetch<Author[]>('authors').then(setItems);
   }, []);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    const created = await adminFetch<Author>('/admin/authors', {
+    const created = await adminFetch<Author>('authors', {
       method: 'POST',
       body: JSON.stringify(form),
     });
@@ -25,7 +25,7 @@ export default function AdminAuthorsPage() {
 
   async function remove(id: string) {
     if (!confirm('წავშალოთ?')) return;
-    await adminFetch(`/admin/authors/${id}`, { method: 'DELETE' });
+    await adminFetch(`authors/${id}`, { method: 'DELETE' });
     setItems((list) => list.filter((x) => x.id !== id));
   }
 

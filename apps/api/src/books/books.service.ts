@@ -1,12 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { AuditAction, Prisma, Role, SlugEntityType } from '@prisma/client';
+import { AuditService } from '../common/audit.service';
+import { SlugService } from '../common/slug.service';
 import { bookInclude, clientAccessToDb, mapBook } from '../common/mappers';
+import { PrismaService } from '../prisma/prisma.service';
 import type { CreateBookDto, UpdateBookDto } from './dto/book.dto';
+
+type Actor = { id: string; email: string; role: Role };
 
 @Injectable()
 export class BooksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+    private slugs: SlugService,
+  ) {}
+
+  private notDeleted: Prisma.BookWhereInput = { deletedAt: null };
 
   async findPublished(filters?: {
     access?: string;
@@ -16,11 +30,11 @@ export class BooksService {
     sort?: 'popular' | 'new';
     limit?: number;
   }) {
-    const where: Prisma.BookWhereInput = { published: true };
+    const where: Prisma.BookWhereInput = { ...this.notDeleted, published: true };
     if (filters?.access) where.access = clientAccessToDb(filters.access as 'free' | 'subscription' | 'premium');
     if (filters?.isNew) where.isNew = true;
-    if (filters?.authorSlug) where.author = { slug: filters.authorSlug };
-    if (filters?.genreSlug) where.genres = { some: { genre: { slug: filters.genreSlug } } };
+    if (filters?.authorSlug) where.author = { slug: filters.authorSlug, deletedAt: null };
+    if (filters?.genreSlug) where.genres = { some: { genre: { slug: filters.genreSlug, deletedAt: null } } };
 
     const orderBy: Prisma.BookOrderByWithRelationInput[] =
       filters?.sort === 'new'
@@ -38,15 +52,16 @@ export class BooksService {
 
   async findBySlug(slug: string) {
     const row = await this.prisma.book.findFirst({
-      where: { slug, published: true },
+      where: { slug, ...this.notDeleted, published: true },
       include: bookInclude,
     });
     if (!row) throw new NotFoundException('Book not found');
     return mapBook(row);
   }
 
-  async findAllAdmin() {
+  async findAllAdmin(trash = false) {
     const rows = await this.prisma.book.findMany({
+      where: trash ? { deletedAt: { not: null } } : this.notDeleted,
       include: bookInclude,
       orderBy: { updatedAt: 'desc' },
     });
@@ -54,15 +69,22 @@ export class BooksService {
   }
 
   async findOneAdmin(id: string) {
-    const row = await this.prisma.book.findUnique({ where: { id }, include: bookInclude });
+    const row = await this.prisma.book.findFirst({
+      where: { id, ...this.notDeleted },
+      include: bookInclude,
+    });
     if (!row) throw new NotFoundException();
     return mapBook(row);
   }
 
-  async create(dto: CreateBookDto) {
-    const author = await this.prisma.author.findUnique({ where: { slug: dto.authorSlug } });
+  async create(dto: CreateBookDto, actor: Actor, ip?: string) {
+    const author = await this.prisma.author.findFirst({
+      where: { slug: dto.authorSlug, deletedAt: null },
+    });
     if (!author) throw new NotFoundException('Author not found');
-    const genres = await this.prisma.genre.findMany({ where: { slug: { in: dto.genreSlugs } } });
+    const genres = await this.prisma.genre.findMany({
+      where: { slug: { in: dto.genreSlugs }, deletedAt: null },
+    });
 
     const row = await this.prisma.book.create({
       data: {
@@ -70,6 +92,9 @@ export class BooksService {
         title: dto.title,
         titleEn: dto.titleEn,
         description: dto.description,
+        seoTitle: dto.seoTitle,
+        seoDescription: dto.seoDescription,
+        seoKeywords: dto.seoKeywords ?? [],
         narrator: dto.narrator,
         coverHue: dto.coverHue ?? 200,
         coverUrl: dto.coverUrl,
@@ -96,22 +121,41 @@ export class BooksService {
       },
       include: bookInclude,
     });
+
+    await this.audit.log({
+      userId: actor.id,
+      userEmail: actor.email,
+      action: AuditAction.BOOK_CREATED,
+      entityType: 'book',
+      entityId: row.id,
+      entityLabel: row.title,
+      ipAddress: ip,
+    });
+
     return mapBook(row);
   }
 
-  async update(id: string, dto: UpdateBookDto) {
-    const existing = await this.prisma.book.findUnique({ where: { id } });
+  async update(id: string, dto: UpdateBookDto, actor: Actor, ip?: string) {
+    const existing = await this.prisma.book.findFirst({ where: { id, ...this.notDeleted } });
     if (!existing) throw new NotFoundException();
+
+    if (dto.slug && dto.slug !== existing.slug) {
+      await this.slugs.recordRedirect(SlugEntityType.BOOK, id, existing.slug, dto.slug);
+    }
 
     let authorId = existing.authorId;
     if (dto.authorSlug) {
-      const author = await this.prisma.author.findUnique({ where: { slug: dto.authorSlug } });
+      const author = await this.prisma.author.findFirst({
+        where: { slug: dto.authorSlug, deletedAt: null },
+      });
       if (!author) throw new NotFoundException('Author not found');
       authorId = author.id;
     }
 
     if (dto.genreSlugs) {
-      const genres = await this.prisma.genre.findMany({ where: { slug: { in: dto.genreSlugs } } });
+      const genres = await this.prisma.genre.findMany({
+        where: { slug: { in: dto.genreSlugs }, deletedAt: null },
+      });
       await this.prisma.bookGenre.deleteMany({ where: { bookId: id } });
       await this.prisma.bookGenre.createMany({
         data: genres.map((g) => ({ bookId: id, genreId: g.id })),
@@ -139,6 +183,9 @@ export class BooksService {
         title: dto.title,
         titleEn: dto.titleEn,
         description: dto.description,
+        seoTitle: dto.seoTitle,
+        seoDescription: dto.seoDescription,
+        seoKeywords: dto.seoKeywords,
         narrator: dto.narrator,
         coverHue: dto.coverHue,
         coverUrl: dto.coverUrl,
@@ -155,16 +202,73 @@ export class BooksService {
       },
       include: bookInclude,
     });
+
+    await this.audit.log({
+      userId: actor.id,
+      userEmail: actor.email,
+      action: AuditAction.BOOK_UPDATED,
+      entityType: 'book',
+      entityId: id,
+      entityLabel: row.title,
+      ipAddress: ip,
+    });
+
     return mapBook(row);
   }
 
-  async remove(id: string) {
+  async softDelete(id: string, actor: Actor, ip?: string) {
+    const row = await this.prisma.book.findFirst({ where: { id, ...this.notDeleted } });
+    if (!row) throw new NotFoundException();
+    await this.prisma.book.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.audit.log({
+      userId: actor.id,
+      userEmail: actor.email,
+      action: AuditAction.BOOK_DELETED,
+      entityType: 'book',
+      entityId: id,
+      entityLabel: row.title,
+      ipAddress: ip,
+    });
+    return { ok: true };
+  }
+
+  async restore(id: string, actor: Actor, ip?: string) {
+    const row = await this.prisma.book.findFirst({ where: { id, deletedAt: { not: null } } });
+    if (!row) throw new NotFoundException();
+    await this.prisma.book.update({ where: { id }, data: { deletedAt: null } });
+    await this.audit.log({
+      userId: actor.id,
+      userEmail: actor.email,
+      action: AuditAction.BOOK_RESTORED,
+      entityType: 'book',
+      entityId: id,
+      entityLabel: row.title,
+      ipAddress: ip,
+    });
+    return { ok: true };
+  }
+
+  async permanentDelete(id: string, actor: Actor, ip?: string) {
+    if (actor.role !== Role.ADMIN) throw new ForbiddenException('Admin only');
+    const row = await this.prisma.book.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException();
     await this.prisma.book.delete({ where: { id } });
+    await this.audit.log({
+      userId: actor.id,
+      userEmail: actor.email,
+      action: AuditAction.BOOK_PERMANENT_DELETE,
+      entityType: 'book',
+      entityId: id,
+      entityLabel: row.title,
+      ipAddress: ip,
+    });
     return { ok: true };
   }
 
   async getReadingParagraphs(bookSlug: string, chapterId: string) {
-    const book = await this.prisma.book.findUnique({ where: { slug: bookSlug } });
+    const book = await this.prisma.book.findFirst({
+      where: { slug: bookSlug, ...this.notDeleted },
+    });
     if (!book) throw new NotFoundException();
     const chapter = await this.prisma.chapter.findFirst({
       where: { id: chapterId, bookId: book.id },
