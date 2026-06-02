@@ -21,20 +21,27 @@ function tailwindLoaded(): boolean {
 }
 
 async function cssLinkOk(): Promise<boolean> {
-  const link = document.querySelector('link[href*="layout.css"]') as HTMLLinkElement | null;
-  if (!link?.href) return false;
+  const links = Array.from(
+    document.querySelectorAll('link[rel="stylesheet"][href*="_next/static"]'),
+  ) as HTMLLinkElement[];
+  if (!links.length) return true;
   try {
-    const res = await fetch(link.href, { cache: 'no-store' });
-    return res.ok;
+    const results = await Promise.all(
+      links.slice(0, 3).map((link) => fetch(link.href, { cache: 'no-store' }).then((r) => r.ok)),
+    );
+    return results.every(Boolean);
   } catch {
     return false;
   }
 }
 
 /**
- * Detects missing/broken Tailwind CSS (stale .next hash → 404) and auto-reloads.
+ * Dev-only: detects missing/broken Tailwind CSS (stale .next hash → 404) and auto-reloads.
+ * Disabled in production — Vercel uses hashed CSS chunks, not layout.css.
  */
 export function StyleGuard() {
+  if (process.env.NODE_ENV === 'production') return null;
+
   const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
