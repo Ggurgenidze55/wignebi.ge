@@ -18,6 +18,7 @@ export default function AdminMediaPage() {
   const [q, setQ] = useState('');
   const [progress, setProgress] = useState<number | null>(null);
   const [drag, setDrag] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(() => {
     adminFetch<MediaRow[]>(`media?q=${encodeURIComponent(q)}`).then(setFiles).catch(console.error);
@@ -31,11 +32,19 @@ export default function AdminMediaPage() {
     const arr = Array.from(list);
     for (const file of arr) {
       setProgress(0);
+      setError('');
       try {
         const row = (await adminUpload(file, setProgress)) as MediaRow;
         if (!row.duplicate) setFiles((f) => [row, ...f]);
       } catch (e) {
-        alert(String(e));
+        const msg = String(e);
+        if (msg.includes('403')) {
+          setError('ატვირთვა უარყოფილია (403): storage/R2 წვდომა ან API უფლებებია შესასწორებელი.');
+        } else if (msg.includes('401')) {
+          setError('სესია დასრულდა, გთხოვ თავიდან შეხვიდე ადმინში.');
+        } else {
+          setError('ატვირთვა ვერ შესრულდა. სცადე თავიდან ან მომწერე error დეტალი.');
+        }
       }
     }
     setProgress(null);
@@ -93,6 +102,7 @@ export default function AdminMediaPage() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
+      {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {files.map((f) => (
