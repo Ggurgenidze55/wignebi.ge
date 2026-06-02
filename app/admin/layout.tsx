@@ -30,6 +30,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link href="/admin/media" className="link-muted">
               Media
             </Link>
+            <Link href="/admin/users" className="link-muted">
+              Users
+            </Link>
             <Link href="/admin/trash" className="link-muted">
               Trash
             </Link>

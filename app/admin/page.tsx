@@ -10,6 +10,8 @@ type Stats = {
   unpublishedBooks: number;
   totalAuthors: number;
   totalGenres: number;
+  totalCustomers: number;
+  activeSubscribers: number;
   recentActivity: {
     id: string;
     action: string;
@@ -33,6 +35,8 @@ export default function AdminDashboardPage() {
     { label: 'გამოუქვეყნებელი', value: stats.unpublishedBooks, sub: 'draft / hidden' },
     { label: 'ავტორები', value: stats.totalAuthors, sub: 'აქტიური' },
     { label: 'ჟანრები', value: stats.totalGenres, sub: 'აქტიური' },
+    { label: 'მომხმარებლები', value: stats.totalCustomers, sub: 'რეგისტრირებული' },
+    { label: 'აქტიური საბსქრიფშენი', value: stats.activeSubscribers, sub: 'ვადაშია' },
   ];
 
   return (
@@ -40,7 +44,7 @@ export default function AdminDashboardPage() {
       <h1 className="text-2xl font-semibold">Dashboard</h1>
       <p className="mt-2 text-fg-muted">CMS სტატისტიკა და ბოლო აქტივობა</p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="panel p-5">
             <p className="text-sm text-fg-muted">{c.label}</p>
@@ -62,6 +66,13 @@ export default function AdminDashboardPage() {
           <div>
             <p className="font-medium">აუდიო ატვირთვა (MP3)</p>
             <p className="text-sm text-fg-muted">Media Library-ში ატვირთე და URL დააკოპირე</p>
+          </div>
+          <span className="text-brand-indigo">გახსნა →</span>
+        </Link>
+        <Link href="/admin/users" className="panel flex items-center justify-between p-4 no-underline">
+          <div>
+            <p className="font-medium">საბსქრიფშენი / მომხმარებლები</p>
+            <p className="text-sm text-fg-muted">ვადა, პაკეტი, +30 დღე, გათიშვა</p>
           </div>
           <span className="text-brand-indigo">გახსნა →</span>
         </Link>

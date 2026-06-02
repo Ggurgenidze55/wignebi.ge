@@ -6,6 +6,7 @@ import { AuthAdminModule } from './auth-admin/auth-admin.module';
 import { AuthorsModule } from './authors/authors.module';
 import { BooksModule } from './books/books.module';
 import { CommonModule } from './common/common.module';
+import { CustomersModule } from './customers/customers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { GenresModule } from './genres/genres.module';
 import { HealthModule } from './health/health.module';
@@ -23,6 +24,7 @@ import { RedirectsModule } from './redirects/redirects.module';
     BooksModule,
     AuthorsModule,
     GenresModule,
+    CustomersModule,
     MediaModule,
     DashboardModule,
     AuditModule,

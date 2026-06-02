@@ -39,6 +39,12 @@ enum AuditAction {
   LOGOUT
   MEDIA_UPLOADED
   MEDIA_DELETED
+  CUSTOMER_CREATED
+  CUSTOMER_UPDATED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_RENEWED
+  SUBSCRIPTION_EXPIRED
+  SUBSCRIPTION_CANCELLED
 }
 
 enum SlugEntityType {
@@ -53,6 +59,18 @@ enum MediaType {
   DOCUMENT
 }
 
+enum SubscriptionPlan {
+  FREE
+  STANDARD
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
 model AdminUser {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -64,6 +82,44 @@ model AdminUser {
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
   mediaFiles    MediaFile[]
+  subscriptions Subscription[] @relation("SubscriptionCreatedBy")
+}
+
+model Customer {
+  id               String           @id @default(cuid())
+  email            String           @unique
+  fullName         String?
+  currentPlan      SubscriptionPlan @default(FREE)
+  subscriptionEnds DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  subscriptions Subscription[]
+
+  @@index([currentPlan])
+  @@index([subscriptionEnds])
+  @@index([deletedAt])
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  customerId  String
+  plan        SubscriptionPlan
+  status      SubscriptionStatus @default(ACTIVE)
+  startsAt    DateTime
+  endsAt      DateTime
+  amountGel   Int?
+  paymentRef  String?
+  createdById String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdBy AdminUser? @relation("SubscriptionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([customerId, status])
+  @@index([endsAt])
 }
 
 model RefreshToken {
