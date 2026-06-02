@@ -29,12 +29,14 @@ export async function readRefreshToken() {
 export async function cmsServerFetch(path: string, init?: RequestInit) {
   const token = await readAccessToken();
   const url = `${getCmsApiUrl()}${path.startsWith('/') ? path : `/${path}`}`;
+  const hasContentType = !!(init?.headers as Record<string, string> | undefined)?.['Content-Type'];
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
   return fetch(url, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.body && !(init.headers as Record<string, string>)?.['Content-Type']
+      ...(init?.body && !hasContentType && !isFormData
         ? { 'Content-Type': 'application/json' }
         : {}),
     },
