@@ -1,21 +1,30 @@
-import { cmsServerFetch, refreshTokensIfNeeded } from '@/lib/cms/bff';
+import { getCmsApiUrl, readAccessToken } from '@/lib/cms/bff';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
-  const form = await req.formData();
-  const file = form.get('file');
-  if (!(file instanceof Blob)) {
-    return NextResponse.json({ error: 'No file' }, { status: 400 });
+  const token = await readAccessToken();
+  if (!token) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = new FormData();
-  body.append('file', file, (file as File).name ?? 'upload');
-
-  let res = await cmsServerFetch('/admin/media/upload', { method: 'POST', body });
-  if (res.status === 401) {
-    const ok = await refreshTokensIfNeeded();
-    if (ok) res = await cmsServerFetch('/admin/media/upload', { method: 'POST', body });
+  const contentType = req.headers.get('content-type');
+  if (!contentType?.startsWith('multipart/form-data')) {
+    return NextResponse.json({ message: 'Invalid upload payload' }, { status: 400 });
   }
+
+  // Stream multipart body directly to API to avoid JSON/body-parser limits.
+  const res = await fetch(`${getCmsApiUrl()}/admin/media/upload`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': contentType,
+    },
+    body: req.body,
+    // Required in Node runtime when streaming request bodies.
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
 
   const text = await res.text();
   return new NextResponse(text, {
