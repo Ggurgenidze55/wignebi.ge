@@ -17,13 +17,23 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
 
   async function load() {
     try {
       const data = await adminFetch<CustomerRow[]>('customers');
       setRows(data);
+      setServiceUnavailable(false);
     } catch (e) {
-      setError(String(e));
+      const msg = String(e);
+      if (msg.includes('404')) {
+        setServiceUnavailable(true);
+        setError(
+          'Users სერვისი ჯერ არ არის ატვირთული API-ში. რამდენიმე წუთში განახლდება deployment-ის შემდეგ.',
+        );
+      } else {
+        setError(msg);
+      }
     }
   }
 
@@ -114,7 +124,8 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => {
+            {!serviceUnavailable &&
+              filtered.map((r) => {
               const active = r.subscriptionEnds ? new Date(r.subscriptionEnds) > new Date() : false;
               return (
                 <tr key={r.id} className="border-b border-line/60">
@@ -146,8 +157,8 @@ export default function AdminUsersPage() {
                     </button>
                   </td>
                 </tr>
-              );
-            })}
+                );
+              })}
           </tbody>
         </table>
       </div>
