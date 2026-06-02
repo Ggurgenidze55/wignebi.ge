@@ -1,6 +1,7 @@
 'use client';
 
 import { adminFetch } from '@/lib/cms/admin-api';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 type Stats = {
@@ -47,6 +48,23 @@ export default function AdminDashboardPage() {
             <p className="mt-1 text-xs text-brand-cyan">{c.sub}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <Link href="/admin/books" className="panel flex items-center justify-between p-4 no-underline">
+          <div>
+            <p className="font-medium">ყველა წიგნის რედაქტირება</p>
+            <p className="text-sm text-fg-muted">სრული სია + edit თითოეულ წიგნზე</p>
+          </div>
+          <span className="text-brand-indigo">გახსნა →</span>
+        </Link>
+        <Link href="/admin/media" className="panel flex items-center justify-between p-4 no-underline">
+          <div>
+            <p className="font-medium">აუდიო ატვირთვა (MP3)</p>
+            <p className="text-sm text-fg-muted">Media Library-ში ატვირთე და URL დააკოპირე</p>
+          </div>
+          <span className="text-brand-indigo">გახსნა →</span>
+        </Link>
       </div>
 
       <div className="panel mt-8 p-6">

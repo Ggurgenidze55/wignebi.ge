@@ -156,6 +156,9 @@ export function BookForm({ bookId }: { bookId?: string }) {
       </fieldset>
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">თავები</legend>
+        <p className="text-xs text-fg-muted">
+          აუდიოს ატვირთვა: <a href="/admin/media" className="text-brand-indigo">Media Library</a> → Copy URL.
+        </p>
         {chapters.map((ch, i) => (
           <div key={i} className="flex flex-wrap gap-2 rounded border border-line/80 p-2">
             <input className="flex-1 rounded border px-2 py-1 text-sm" placeholder="სათაური" value={ch.title} onChange={(e) => {
@@ -168,6 +171,16 @@ export function BookForm({ bookId }: { bookId?: string }) {
               next[i] = { ...ch, durationSec: Number(e.target.value) };
               setChapters(next);
             }} />
+            <input
+              className="w-full rounded border px-2 py-1 text-sm"
+              placeholder="audioUrl (MP3)"
+              value={ch.audioUrl ?? ''}
+              onChange={(e) => {
+                const next = [...chapters];
+                next[i] = { ...ch, audioUrl: e.target.value };
+                setChapters(next);
+              }}
+            />
           </div>
         ))}
         <button type="button" className="text-sm text-brand-indigo" onClick={() => setChapters([...chapters, { title: 'თავი', durationSec: 600 }])}>

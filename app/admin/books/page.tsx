@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     adminFetch<Book[]>('books')
@@ -21,6 +22,16 @@ export default function AdminBooksPage() {
     setBooks((b) => b.filter((x) => x.id !== id));
   }
 
+  const filtered = books.filter((b) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      b.title.toLowerCase().includes(q) ||
+      b.slug.toLowerCase().includes(q) ||
+      b.author.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -28,6 +39,14 @@ export default function AdminBooksPage() {
         <Link href="/admin/books/new" className="btn-primary text-sm">
           + ახალი
         </Link>
+      </div>
+      <div className="mt-4">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="ძებნა წიგნით / slug-ით / ავტორით"
+          className="w-full max-w-md rounded-lg border border-line px-3 py-2 text-sm"
+        />
       </div>
       {error ? <p className="mt-4 text-red-600">{error}</p> : null}
       <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-white">
@@ -41,7 +60,7 @@ export default function AdminBooksPage() {
             </tr>
           </thead>
           <tbody>
-            {books.map((b) => (
+            {filtered.map((b) => (
               <tr key={b.id} className="border-b border-line/60">
                 <td className="p-3">
                   <Link href={`/admin/books/${b.id}`} className="font-medium">
@@ -52,6 +71,9 @@ export default function AdminBooksPage() {
                 <td className="p-3">{b.author}</td>
                 <td className="p-3">{b.access}</td>
                 <td className="p-3 text-right">
+                  <Link href={`/admin/books/${b.id}`} className="mr-3 text-xs text-brand-indigo">
+                    რედაქტირება
+                  </Link>
                   <button type="button" className="text-red-600 text-xs" onClick={() => remove(b.id)}>
                     წაშლა
                   </button>
